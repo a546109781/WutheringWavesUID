@@ -41,7 +41,7 @@ jobs:
 
       # 4. 推送更新到 fork
       - name: Push updates
-        run: git push origin main
+        run: git push origin master
 
       # 5. 冲突处理通知 (可选)
       - name: Notify on conflict

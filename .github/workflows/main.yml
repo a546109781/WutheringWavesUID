@@ -32,7 +32,7 @@ jobs:
           git config user.email "a546109781@gmail.com"
           
           # 尝试合并（使用 rebase 避免额外 merge commit）
-          git rebase upstream/main main || {
+          git rebase upstream/master master || {
             # 冲突处理：取消 rebase 并回退
             git rebase --abort
             echo "⚠️ Sync failed due to conflicts. Manual intervention required."

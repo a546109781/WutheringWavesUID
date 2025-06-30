@@ -1,0 +1,57 @@
+name: Sync Fork with Upstream
+
+on:
+  schedule:
+    # 每天 UTC 时间 00:00 自动同步 (可选)
+    - cron: '0 0 * * *'
+  workflow_dispatch: # 支持手动触发
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # 需要写权限执行推送
+
+    steps:
+      # 1. 检出当前 fork 仓库
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 获取完整历史记录
+
+      # 2. 添加上游仓库
+      - name: Add upstream repository
+        run: |
+          git remote add upstream ${{ vars.UPSTREAM_REPO_URL || 'https://github.com/tyql688/WutheringWavesUID.git' }}
+          git fetch upstream
+
+      # 3. 同步上游更改
+      - name: Merge upstream changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # 尝试合并（使用 rebase 避免额外 merge commit）
+          git rebase upstream/main main || {
+            # 冲突处理：取消 rebase 并回退
+            git rebase --abort
+            echo "⚠️ Sync failed due to conflicts. Manual intervention required."
+            exit 1
+          }
+
+      # 4. 推送更新到 fork
+      - name: Push updates
+        run: git push origin main
+
+      # 5. 冲突处理通知 (可选)
+      - name: Notify on conflict
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: "⚠️ Sync failed due to conflicts! Please resolve manually."
+            })
